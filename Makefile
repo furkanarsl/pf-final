@@ -43,3 +43,6 @@ docker.stop.server:
 
 docker.stop.postgres:
 	docker stop dev-postgres
+
+sqlc.generate:
+	go run github.com/kyleconroy/sqlc/cmd/sqlc@latest generate
