@@ -7,7 +7,52 @@ package queries
 
 import (
 	"context"
+	"database/sql"
 )
+
+const addToCart = `-- name: AddToCart :one
+INSERT INTO cart_products(product_id,cart_id,quantity) values($1,$2,$3) RETURNING id, product_id, cart_id, quantity
+`
+
+type AddToCartParams struct {
+	ProductID int64
+	CartID    int64
+	Quantity  int32
+}
+
+func (q *Queries) AddToCart(ctx context.Context, arg AddToCartParams) (CartProduct, error) {
+	row := q.db.QueryRow(ctx, addToCart, arg.ProductID, arg.CartID, arg.Quantity)
+	var i CartProduct
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.CartID,
+		&i.Quantity,
+	)
+	return i, err
+}
+
+const deleteCartItem = `-- name: DeleteCartItem :exec
+DELETE FROM cart_products
+WHERE id = $1
+`
+
+func (q *Queries) DeleteCartItem(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteCartItem, id)
+	return err
+}
+
+const getCartForUser = `-- name: GetCartForUser :one
+select id, user_id from carts
+where user_id = $1
+`
+
+func (q *Queries) GetCartForUser(ctx context.Context, userID int64) (Cart, error) {
+	row := q.db.QueryRow(ctx, getCartForUser, userID)
+	var i Cart
+	err := row.Scan(&i.ID, &i.UserID)
+	return i, err
+}
 
 const getProduct = `-- name: GetProduct :one
 SELECT id, name, price, vat FROM products
@@ -26,6 +71,47 @@ func (q *Queries) GetProduct(ctx context.Context, id int64) (Product, error) {
 	return i, err
 }
 
+const listCartItems = `-- name: ListCartItems :many
+select cp.id, cp.quantity, p."name", p.price, p.vat from cart_products cp 
+left join carts c on cp.cart_id = c.id
+left join products p on p.id = cp.product_id
+where c.id = $1
+`
+
+type ListCartItemsRow struct {
+	ID       int64
+	Quantity int32
+	Name     sql.NullString
+	Price    sql.NullFloat64
+	Vat      sql.NullInt16
+}
+
+func (q *Queries) ListCartItems(ctx context.Context, id int64) ([]ListCartItemsRow, error) {
+	rows, err := q.db.Query(ctx, listCartItems, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCartItemsRow
+	for rows.Next() {
+		var i ListCartItemsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Quantity,
+			&i.Name,
+			&i.Price,
+			&i.Vat,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProducts = `-- name: ListProducts :many
 SELECT id, name, price, vat FROM products
 ORDER BY id
@@ -33,6 +119,36 @@ ORDER BY id
 
 func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 	rows, err := q.db.Query(ctx, listProducts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Price,
+			&i.Vat,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listProductsByID = `-- name: ListProductsByID :many
+SELECT id, name, price, vat FROM products
+WHERE id = ANY($1::bigint[])
+`
+
+func (q *Queries) ListProductsByID(ctx context.Context, dollar_1 []int64) ([]Product, error) {
+	rows, err := q.db.Query(ctx, listProductsByID, dollar_1)
 	if err != nil {
 		return nil, err
 	}

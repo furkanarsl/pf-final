@@ -6,9 +6,26 @@ package queries
 
 import ()
 
+type Cart struct {
+	ID     int64
+	UserID int64
+}
+
+type CartProduct struct {
+	ID        int64
+	ProductID int64
+	CartID    int64
+	Quantity  int32
+}
+
 type Product struct {
 	ID    int64
 	Name  string
 	Price float64
 	Vat   int16
+}
+
+type User struct {
+	ID   int64
+	Name string
 }
