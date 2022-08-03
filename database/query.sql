@@ -20,9 +20,13 @@ left join carts c on cp.cart_id = c.id
 left join products p on p.id = cp.product_id
 where c.id = $1;
 
+-- name: GetCartItem :one
+SELECT * FROM cart_products
+WHERE id = $1;
+
 -- name: AddToCart :one
 INSERT INTO cart_products(product_id,cart_id,quantity) values($1,$2,$3) RETURNING *;
 
 -- name: DeleteCartItem :exec
 DELETE FROM cart_products
-WHERE id = $1;
+WHERE cart_id = $1 AND id = $2;

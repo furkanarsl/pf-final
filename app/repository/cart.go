@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/furkanarsl/pf-final/database"
 	"github.com/furkanarsl/pf-final/pkg/queries"
@@ -14,8 +15,8 @@ type cartRepo struct {
 type CartRepo interface {
 	GetCartForUser(userID int64) (queries.Cart, error)
 	GetCartItems(cartID int64) ([]queries.ListCartItemsRow, error)
-
 	AddToCart(cartID int64, productID int64, quantity int32) (queries.CartProduct, error)
+	RemoveFromCart(cartID, itemID int64) error
 }
 
 func NewCartRepo(queries database.DbQueries) *cartRepo {
@@ -51,4 +52,17 @@ func (r *cartRepo) AddToCart(cartID int64, productID int64, quantity int32) (que
 	}
 
 	return result, nil
+}
+
+func (r *cartRepo) RemoveFromCart(cartID, itemID int64) error {
+	_, err := r.GetCartItem(context.Background(), itemID)
+	if err != nil {
+		return err
+	}
+	args := queries.DeleteCartItemParams{CartID: cartID, ID: itemID}
+	err = r.DeleteCartItem(context.Background(), args)
+	if err != nil {
+		return errors.New("failed to delete product from cart")
+	}
+	return nil
 }

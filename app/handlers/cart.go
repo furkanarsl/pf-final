@@ -66,5 +66,29 @@ func (h *cartHandler) AddToCart(c *gin.Context) {
 
 func (h *cartHandler) DeleteFromCart(c *gin.Context) {
 	id := c.Param("id")
-	c.JSON(http.StatusOK, gin.H{"item": "Delete item from cart", "id": id, "status": true})
+
+	qID, _ := c.GetQuery("user_id")
+	userID, err := strconv.ParseInt(qID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Invalid user id"})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Invalid body"})
+	}
+
+	itemID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Invalid itemID"})
+		return
+	}
+
+	err = h.cartService.RemoveFromCart(userID, itemID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Failed to delete"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"id": id, "status": "Success"})
 }

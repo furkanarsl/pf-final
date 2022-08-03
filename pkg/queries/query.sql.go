@@ -34,11 +34,16 @@ func (q *Queries) AddToCart(ctx context.Context, arg AddToCartParams) (CartProdu
 
 const deleteCartItem = `-- name: DeleteCartItem :exec
 DELETE FROM cart_products
-WHERE id = $1
+WHERE cart_id = $1 AND id = $2
 `
 
-func (q *Queries) DeleteCartItem(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, deleteCartItem, id)
+type DeleteCartItemParams struct {
+	CartID int64
+	ID     int64
+}
+
+func (q *Queries) DeleteCartItem(ctx context.Context, arg DeleteCartItemParams) error {
+	_, err := q.db.Exec(ctx, deleteCartItem, arg.CartID, arg.ID)
 	return err
 }
 
@@ -51,6 +56,23 @@ func (q *Queries) GetCartForUser(ctx context.Context, userID int64) (Cart, error
 	row := q.db.QueryRow(ctx, getCartForUser, userID)
 	var i Cart
 	err := row.Scan(&i.ID, &i.UserID)
+	return i, err
+}
+
+const getCartItem = `-- name: GetCartItem :one
+SELECT id, product_id, cart_id, quantity FROM cart_products
+WHERE id = $1
+`
+
+func (q *Queries) GetCartItem(ctx context.Context, id int64) (CartProduct, error) {
+	row := q.db.QueryRow(ctx, getCartItem, id)
+	var i CartProduct
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.CartID,
+		&i.Quantity,
+	)
 	return i, err
 }
 

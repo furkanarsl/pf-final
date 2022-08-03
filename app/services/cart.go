@@ -14,6 +14,7 @@ type CartSvc struct {
 type CartService interface {
 	ListCart(userID int64) (entity.UserCart, error)
 	AddToCart(userID int64, productID int64, quantity int32) (queries.CartProduct, error)
+	RemoveFromCart(userID, itemID int64) error
 }
 
 func NewCartService(CartRepo repository.CartRepo, ProductRepo repository.ProductRepo) *CartSvc {
@@ -51,6 +52,7 @@ func (s *CartSvc) ListCart(userID int64) (entity.UserCart, error) {
 			Vat:       item.Vat.Int16,
 			TaxAmount: taxAmount,
 			Total:     itemTotal}
+
 		userCart.Items = append(userCart.Items, cartItem)
 		cartTotal += itemTotal
 		taxTotal += taxAmount
@@ -79,4 +81,17 @@ func (s *CartSvc) AddToCart(userID int64, productID int64, quantity int32) (quer
 	}
 
 	return result, nil
+}
+
+func (s *CartSvc) RemoveFromCart(userID, itemID int64) error {
+	cart, err := s.CartRepo.GetCartForUser(userID)
+	if err != nil {
+		return err
+	}
+
+	err = s.CartRepo.RemoveFromCart(cart.UserID, itemID)
+	if err != nil {
+		return err
+	}
+	return nil
 }
