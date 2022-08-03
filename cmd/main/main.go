@@ -27,13 +27,15 @@ func main() {
 	defer db.Close(context.Background())
 	//Create repositories
 	productRepo := repository.NewProductRepo(queries)
+	cartRepo := repository.NewCartRepo(queries)
 
 	//Create services
 	productSvc := services.NewProductService(productRepo)
+	cartSvc := services.NewCartService(cartRepo, productRepo)
 
 	//Register handlers
 	handlers.NewProductHandler(api, productSvc)
-	handlers.NewCartHandler(api)
+	handlers.NewCartHandler(api, cartSvc)
 	handlers.NewOrderHandler(api)
 	r.Run()
 }

@@ -1,13 +1,20 @@
 package handlers
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/furkanarsl/pf-final/app/services"
+	"github.com/gin-gonic/gin"
+)
 
 type cartHandler struct {
+	cartService services.CartService
 }
 
-func NewCartHandler(r *gin.RouterGroup) {
+func NewCartHandler(r *gin.RouterGroup, cartService services.CartService) {
 
-	handler := cartHandler{}
+	handler := cartHandler{cartService: cartService}
 
 	r.GET("/cart", handler.ListCart)
 	r.POST("/cart", handler.AddToCart)
@@ -15,15 +22,49 @@ func NewCartHandler(r *gin.RouterGroup) {
 }
 
 func (h *cartHandler) ListCart(c *gin.Context) {
-	items := []string{"123"}
-	c.JSON(200, gin.H{"items": items, "total_price": 123, "total_selling_price": 150, "total_vat": 15})
+
+	qID, _ := c.GetQuery("user_id")
+	userID, err := strconv.ParseInt(qID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Invalid user id"})
+		return
+	}
+
+	cart, err := h.cartService.ListCart(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"status": "User doesn't exists"})
+		return
+	}
+
+	c.JSON(200, cart)
 }
 
 func (h *cartHandler) AddToCart(c *gin.Context) {
-	c.JSON(200, gin.H{"item": "Add an item to cart return the added item"})
+
+	qID, _ := c.GetQuery("user_id")
+	userID, err := strconv.ParseInt(qID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Invalid user id"})
+		return
+	}
+
+	addParams := AddToCartParams{}
+	err = c.BindJSON(&addParams)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Invalid body"})
+		return
+	}
+
+	res, err := h.cartService.AddToCart(userID, addParams.ProductID, addParams.Quantity)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Failed to add to cart"})
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
 }
 
 func (h *cartHandler) DeleteFromCart(c *gin.Context) {
 	id := c.Param("id")
-	c.JSON(200, gin.H{"item": "Delete item from cart", "id": id, "status": true})
+	c.JSON(http.StatusOK, gin.H{"item": "Delete item from cart", "id": id, "status": true})
 }
