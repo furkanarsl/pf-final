@@ -30,3 +30,27 @@ INSERT INTO cart_products(product_id,cart_id,quantity) values($1,$2,$3) RETURNIN
 -- name: DeleteCartItem :exec
 DELETE FROM cart_products
 WHERE cart_id = $1 AND id = $2;
+
+-- name: GetOrderForUser :one
+SELECT * FROM orders
+WHERE id = $1 AND user_id = $2;
+
+-- name: GetOrdersForUser :many
+SELECT * FROM orders
+WHERE user_id = $1;
+
+-- name: GetOrdersBetweenDate :many
+SELECT * FROM orders
+WHERE user_id = $1 AND ordered_at >= @start_date AND ordered_at < @end_date;
+
+-- name: GetOrderCountBetweenDate :one
+SELECT COUNT(*) FROM orders
+WHERE user_id = $1 AND ordered_at >= @start_date AND ordered_at < @end_date;
+
+-- name: GetOrderTotalBetweenDate :one
+SELECT SUM(o.total_paid)::float FROM orders o
+WHERE user_id = $1 AND ordered_at >= @start_date AND ordered_at < @end_date;
+
+-- name: CreateOrder :one
+INSERT INTO orders(user_id, ordered_at, total_paid) values($1,$2,$3)
+RETURNING *;

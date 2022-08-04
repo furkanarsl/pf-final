@@ -21,3 +21,10 @@ CREATE TABLE cart_products(
   cart_id BIGINT NOT NULL REFERENCES carts(id),
   quantity INTEGER NOT NULL DEFAULT 1
 );
+
+CREATE TABLE orders(
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  ordered_at TIMESTAMP NOT NULL,
+  total_paid FLOAT NOT NULL
+);

@@ -28,14 +28,14 @@ func main() {
 	//Create repositories
 	productRepo := repository.NewProductRepo(queries)
 	cartRepo := repository.NewCartRepo(queries)
-
+	orderRepo := repository.NewOrderRepo(queries)
 	//Create services
 	productSvc := services.NewProductService(productRepo)
 	cartSvc := services.NewCartService(cartRepo, productRepo)
-
+	orderSvc := services.NewOrderService(orderRepo, cartSvc)
 	//Register handlers
 	handlers.NewProductHandler(api, productSvc)
 	handlers.NewCartHandler(api, cartSvc)
-	handlers.NewOrderHandler(api)
+	handlers.NewOrderHandler(api, orderSvc)
 	r.Run()
 }

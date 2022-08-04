@@ -8,6 +8,7 @@ package queries
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const addToCart = `-- name: AddToCart :one
@@ -28,6 +29,29 @@ func (q *Queries) AddToCart(ctx context.Context, arg AddToCartParams) (CartProdu
 		&i.ProductID,
 		&i.CartID,
 		&i.Quantity,
+	)
+	return i, err
+}
+
+const createOrder = `-- name: CreateOrder :one
+INSERT INTO orders(user_id, ordered_at, total_paid) values($1,$2,$3)
+RETURNING id, user_id, ordered_at, total_paid
+`
+
+type CreateOrderParams struct {
+	UserID    int64
+	OrderedAt time.Time
+	TotalPaid float64
+}
+
+func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
+	row := q.db.QueryRow(ctx, createOrder, arg.UserID, arg.OrderedAt, arg.TotalPaid)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.OrderedAt,
+		&i.TotalPaid,
 	)
 	return i, err
 }
@@ -74,6 +98,130 @@ func (q *Queries) GetCartItem(ctx context.Context, id int64) (CartProduct, error
 		&i.Quantity,
 	)
 	return i, err
+}
+
+const getOrderCountBetweenDate = `-- name: GetOrderCountBetweenDate :one
+SELECT COUNT(*) FROM orders
+WHERE user_id = $1 AND ordered_at >= $2 AND ordered_at < $3
+`
+
+type GetOrderCountBetweenDateParams struct {
+	UserID    int64
+	StartDate time.Time
+	EndDate   time.Time
+}
+
+func (q *Queries) GetOrderCountBetweenDate(ctx context.Context, arg GetOrderCountBetweenDateParams) (int64, error) {
+	row := q.db.QueryRow(ctx, getOrderCountBetweenDate, arg.UserID, arg.StartDate, arg.EndDate)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getOrderForUser = `-- name: GetOrderForUser :one
+SELECT id, user_id, ordered_at, total_paid FROM orders
+WHERE id = $1 AND user_id = $2
+`
+
+type GetOrderForUserParams struct {
+	ID     int64
+	UserID int64
+}
+
+func (q *Queries) GetOrderForUser(ctx context.Context, arg GetOrderForUserParams) (Order, error) {
+	row := q.db.QueryRow(ctx, getOrderForUser, arg.ID, arg.UserID)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.OrderedAt,
+		&i.TotalPaid,
+	)
+	return i, err
+}
+
+const getOrderTotalBetweenDate = `-- name: GetOrderTotalBetweenDate :one
+SELECT SUM(o.total_paid)::float FROM orders o
+WHERE user_id = $1 AND ordered_at >= $2 AND ordered_at < $3
+`
+
+type GetOrderTotalBetweenDateParams struct {
+	UserID    int64
+	StartDate time.Time
+	EndDate   time.Time
+}
+
+func (q *Queries) GetOrderTotalBetweenDate(ctx context.Context, arg GetOrderTotalBetweenDateParams) (float64, error) {
+	row := q.db.QueryRow(ctx, getOrderTotalBetweenDate, arg.UserID, arg.StartDate, arg.EndDate)
+	var column_1 float64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const getOrdersBetweenDate = `-- name: GetOrdersBetweenDate :many
+SELECT id, user_id, ordered_at, total_paid FROM orders
+WHERE user_id = $1 AND ordered_at >= $2 AND ordered_at < $3
+`
+
+type GetOrdersBetweenDateParams struct {
+	UserID    int64
+	StartDate time.Time
+	EndDate   time.Time
+}
+
+func (q *Queries) GetOrdersBetweenDate(ctx context.Context, arg GetOrdersBetweenDateParams) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getOrdersBetweenDate, arg.UserID, arg.StartDate, arg.EndDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.OrderedAt,
+			&i.TotalPaid,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrdersForUser = `-- name: GetOrdersForUser :many
+SELECT id, user_id, ordered_at, total_paid FROM orders
+WHERE user_id = $1
+`
+
+func (q *Queries) GetOrdersForUser(ctx context.Context, userID int64) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getOrdersForUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.OrderedAt,
+			&i.TotalPaid,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getProduct = `-- name: GetProduct :one

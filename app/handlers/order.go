@@ -1,17 +1,35 @@
 package handlers
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/furkanarsl/pf-final/app/services"
+	"github.com/gin-gonic/gin"
+)
 
 type orderHandler struct {
+	orderService services.OrderService
 }
 
-func NewOrderHandler(r *gin.RouterGroup) {
+func NewOrderHandler(r *gin.RouterGroup, orderService services.OrderService) {
 
-	handler := orderHandler{}
+	handler := orderHandler{orderService: orderService}
 
 	r.POST("/order/complete", handler.CompleteOrder)
 }
 
 func (h *orderHandler) CompleteOrder(c *gin.Context) {
-	c.JSON(200, gin.H{"status": "Order completed"})
+	qID, _ := c.GetQuery("user_id")
+	userID, err := strconv.ParseInt(qID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Invalid user id"})
+		return
+	}
+	order, err := h.orderService.CompleteOrder(userID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Failed to complete the order"})
+		return
+	}
+	c.JSON(200, order)
 }

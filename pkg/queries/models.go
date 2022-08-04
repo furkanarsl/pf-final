@@ -4,7 +4,9 @@
 
 package queries
 
-import ()
+import (
+	"time"
+)
 
 type Cart struct {
 	ID     int64
@@ -16,6 +18,13 @@ type CartProduct struct {
 	ProductID int64
 	CartID    int64
 	Quantity  int32
+}
+
+type Order struct {
+	ID        int64
+	UserID    int64
+	OrderedAt time.Time
+	TotalPaid float64
 }
 
 type Product struct {
