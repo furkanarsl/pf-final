@@ -45,12 +45,39 @@ func (s *DiscountSvc) calculateFourthOrderDiscount(userCart entity.UserCart, dis
 	}
 	return userCart
 }
-func (s *DiscountSvc) calculateFourthItemDiscount(userCart entity.UserCart) {
 
+func (s *DiscountSvc) calculateFourthItemDiscount(userCart entity.UserCart) entity.UserCart {
+	var discount int16 = 0
+	productCount := make(map[int64]int)
+	userCart.TotalPriceDisc = 0
+	userCart.TotalTaxDisc = 0
+	for i := range userCart.Items {
+		item := &userCart.Items[i]
+		// Add product to count map
+		if _, ok := productCount[item.Product.ID]; !ok {
+			productCount[item.Product.ID] = 1
+		} else {
+			productCount[item.Product.ID] += 1
+		}
+		if productCount[item.Product.ID] > 3 {
+			discount = 8
+		}
+		applyDiscount(item, &userCart, discount)
+		discount = 0
+	}
+	return userCart
 }
 
-func (s *DiscountSvc) calculateMonthlyDiscount(userCart entity.UserCart) {
-
+func (s *DiscountSvc) calculateMonthlyDiscount(userCart entity.UserCart) entity.UserCart {
+	// TODO: add check to see if user made purchase more than given amount
+	var discount int16 = 10
+	userCart.TotalPriceDisc = 0
+	userCart.TotalTaxDisc = 0
+	for i := range userCart.Items {
+		item := &userCart.Items[i]
+		applyDiscount(item, &userCart, discount)
+	}
+	return userCart
 }
 
 func applyDiscount(item *entity.CartItem, userCart *entity.UserCart, discount int16) {
