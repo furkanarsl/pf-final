@@ -55,7 +55,7 @@ func (h *cartHandler) AddToCart(c *gin.Context) {
 		return
 	}
 
-	res, err := h.cartService.AddToCart(userID, addParams.ProductID, addParams.Quantity)
+	res, err := h.cartService.AddToCart(userID, addParams.ProductID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "Failed to add to cart"})
 		return

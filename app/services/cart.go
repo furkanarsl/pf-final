@@ -13,7 +13,7 @@ type cartSvc struct {
 
 type CartService interface {
 	ListCart(userID int64) (entity.UserCart, error)
-	AddToCart(userID int64, productID int64, quantity int32) (queries.CartProduct, error)
+	AddToCart(userID int64, productID int64) (queries.CartProduct, error)
 	RemoveFromCart(userID, itemID int64) error
 }
 
@@ -36,11 +36,10 @@ func (s *cartSvc) ListCart(userID int64) (entity.UserCart, error) {
 		userCart.Items = []entity.CartItem{}
 		return userCart, nil
 	}
-
 	return userCart, nil
 }
 
-func (s *cartSvc) AddToCart(userID int64, productID int64, quantity int32) (queries.CartProduct, error) {
+func (s *cartSvc) AddToCart(userID int64, productID int64) (queries.CartProduct, error) {
 	cart, err := s.CartRepo.GetCartForUser(userID)
 	if err != nil {
 		return queries.CartProduct{}, err
@@ -52,7 +51,7 @@ func (s *cartSvc) AddToCart(userID int64, productID int64, quantity int32) (quer
 		return queries.CartProduct{}, err
 	}
 
-	result, err := s.CartRepo.AddToCart(cart.ID, product.ID, quantity)
+	result, err := s.CartRepo.AddToCart(cart.ID, product.ID)
 	if err != nil {
 		return result, err
 	}
@@ -82,23 +81,20 @@ func (s *cartSvc) calculateCartItems(cartItems *[]queries.ListCartItemsRow, user
 
 		taxAmount := calculatePercent(item.Price.Float64, item.Vat.Int16)
 		taxedPrice := item.Price.Float64 + taxAmount
-		itemTotal := float64(item.Quantity) * taxedPrice
+
+		product := entity.Product{ID: item.ProductID.Int64, Name: item.Name.String, Vat: item.Vat.Int16, Price: item.Price.Float64}
 
 		cartItem := entity.CartItem{
-			ID:           item.ID,
-			OrgPrice:     item.Price.Float64,
-			DiscOrgPrice: item.Price.Float64,
-			Price:        taxedPrice,
-			DiscPrice:    taxedPrice,
-			Quantity:     item.Quantity,
-			Vat:          item.Vat.Int16,
-			OrgTax:       taxAmount,
-			DiscTax:      taxAmount,
-			Total:        itemTotal,
+			ID:        item.ID,
+			Product:   product,
+			Price:     taxedPrice,
+			DiscPrice: taxedPrice,
+			OrgTax:    taxAmount,
+			DiscTax:   taxAmount,
 		}
 
 		userCart.Items = append(userCart.Items, cartItem)
-		cartTotal += itemTotal
+		cartTotal += cartItem.Price
 		cartTaxTotal += taxAmount
 	}
 	userCart.TotalTax = cartTaxTotal

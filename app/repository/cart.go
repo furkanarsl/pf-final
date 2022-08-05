@@ -15,7 +15,7 @@ type cartRepo struct {
 type CartRepo interface {
 	GetCartForUser(userID int64) (queries.Cart, error)
 	GetCartItems(cartID int64) ([]queries.ListCartItemsRow, error)
-	AddToCart(cartID int64, productID int64, quantity int32) (queries.CartProduct, error)
+	AddToCart(cartID int64, productID int64) (queries.CartProduct, error)
 	RemoveFromCart(cartID, itemID int64) error
 }
 
@@ -53,8 +53,8 @@ func (r *cartRepo) GetCartProducts(productIDs []int64) ([]queries.Product, error
 
 }
 
-func (r *cartRepo) AddToCart(cartID int64, productID int64, quantity int32) (queries.CartProduct, error) {
-	args := queries.AddToCartParams{ProductID: productID, CartID: cartID, Quantity: quantity}
+func (r *cartRepo) AddToCart(cartID int64, productID int64) (queries.CartProduct, error) {
+	args := queries.AddToCartParams{ProductID: productID, CartID: cartID}
 	result, err := r.Queries.AddToCart(context.Background(), args)
 
 	if err != nil {

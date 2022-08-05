@@ -18,8 +18,7 @@ CREATE TABLE carts(
 CREATE TABLE cart_products(
   id BIGSERIAL PRIMARY KEY,
   product_id BIGINT NOT NULL REFERENCES products(id),
-  cart_id BIGINT NOT NULL REFERENCES carts(id),
-  quantity INTEGER NOT NULL DEFAULT 1
+  cart_id BIGINT NOT NULL REFERENCES carts(id)
 );
 
 CREATE TABLE orders(

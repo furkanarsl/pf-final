@@ -12,24 +12,18 @@ import (
 )
 
 const addToCart = `-- name: AddToCart :one
-INSERT INTO cart_products(product_id,cart_id,quantity) values($1,$2,$3) RETURNING id, product_id, cart_id, quantity
+INSERT INTO cart_products(product_id,cart_id) values($1,$2) RETURNING id, product_id, cart_id
 `
 
 type AddToCartParams struct {
 	ProductID int64
 	CartID    int64
-	Quantity  int32
 }
 
 func (q *Queries) AddToCart(ctx context.Context, arg AddToCartParams) (CartProduct, error) {
-	row := q.db.QueryRow(ctx, addToCart, arg.ProductID, arg.CartID, arg.Quantity)
+	row := q.db.QueryRow(ctx, addToCart, arg.ProductID, arg.CartID)
 	var i CartProduct
-	err := row.Scan(
-		&i.ID,
-		&i.ProductID,
-		&i.CartID,
-		&i.Quantity,
-	)
+	err := row.Scan(&i.ID, &i.ProductID, &i.CartID)
 	return i, err
 }
 
@@ -84,19 +78,14 @@ func (q *Queries) GetCartForUser(ctx context.Context, userID int64) (Cart, error
 }
 
 const getCartItem = `-- name: GetCartItem :one
-SELECT id, product_id, cart_id, quantity FROM cart_products
+SELECT id, product_id, cart_id FROM cart_products
 WHERE id = $1
 `
 
 func (q *Queries) GetCartItem(ctx context.Context, id int64) (CartProduct, error) {
 	row := q.db.QueryRow(ctx, getCartItem, id)
 	var i CartProduct
-	err := row.Scan(
-		&i.ID,
-		&i.ProductID,
-		&i.CartID,
-		&i.Quantity,
-	)
+	err := row.Scan(&i.ID, &i.ProductID, &i.CartID)
 	return i, err
 }
 
@@ -242,18 +231,18 @@ func (q *Queries) GetProduct(ctx context.Context, id int64) (Product, error) {
 }
 
 const listCartItems = `-- name: ListCartItems :many
-select cp.id, cp.quantity, p."name", p.price, p.vat from cart_products cp 
+select cp.id, p."name", p.price, p.vat, p.id as product_id from cart_products cp 
 left join carts c on cp.cart_id = c.id
 left join products p on p.id = cp.product_id
 where c.id = $1
 `
 
 type ListCartItemsRow struct {
-	ID       int64
-	Quantity int32
-	Name     sql.NullString
-	Price    sql.NullFloat64
-	Vat      sql.NullInt16
+	ID        int64
+	Name      sql.NullString
+	Price     sql.NullFloat64
+	Vat       sql.NullInt16
+	ProductID sql.NullInt64
 }
 
 func (q *Queries) ListCartItems(ctx context.Context, id int64) ([]ListCartItemsRow, error) {
@@ -267,10 +256,10 @@ func (q *Queries) ListCartItems(ctx context.Context, id int64) ([]ListCartItemsR
 		var i ListCartItemsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Quantity,
 			&i.Name,
 			&i.Price,
 			&i.Vat,
+			&i.ProductID,
 		); err != nil {
 			return nil, err
 		}

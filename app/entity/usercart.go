@@ -10,18 +10,18 @@ type UserCart struct {
 }
 
 type CartItem struct {
-	ID       int64 `json:"id"`
-	Quantity int32 `json:"quantity"`
+	ID      int64   `json:"id"`
+	Product Product `json:"product"`
+	Price   float64 `json:"sell_price"`
+	OrgTax  float64 `json:"tax"`
 
-	Price    float64 `json:"sell_price"`
-	OrgPrice float64 `json:"org_price"`
-	OrgTax   float64 `json:"tax"`
+	DiscPrice float64 `json:"disc_sell_price"`
+	DiscTax   float64 `json:"disc_tax"`
+}
 
-	DiscPrice    float64 `json:"disc_sell_price"`
-	DiscOrgPrice float64 `json:"disc_org_price"`
-	DiscTax      float64 `json:"disc_tax"`
-
-	Total     float64 `json:"total_price"`
-	DiscTotal float64 `json:"disc_total_price"`
-	Vat       int16   `json:"tax_percent"`
+type Product struct {
+	ID    int64   `json:"id"`
+	Name  string  `json:"name"`
+	Price float64 `json:"price"`
+	Vat   int16   `json:"vat"`
 }

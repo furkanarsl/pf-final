@@ -17,7 +17,6 @@ type CartProduct struct {
 	ID        int64
 	ProductID int64
 	CartID    int64
-	Quantity  int32
 }
 
 type Order struct {
