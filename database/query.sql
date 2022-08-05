@@ -8,7 +8,7 @@ ORDER BY id;
 
 -- name: ListProductsByID :many
 SELECT * FROM products
-WHERE id = ANY($1::bigint[]);
+WHERE id = ANY(@IDS::bigint[]);
 
 -- name: GetCartForUser :one
 select * from carts

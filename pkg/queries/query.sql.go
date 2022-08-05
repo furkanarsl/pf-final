@@ -317,8 +317,8 @@ SELECT id, name, price, vat FROM products
 WHERE id = ANY($1::bigint[])
 `
 
-func (q *Queries) ListProductsByID(ctx context.Context, dollar_1 []int64) ([]Product, error) {
-	rows, err := q.db.Query(ctx, listProductsByID, dollar_1)
+func (q *Queries) ListProductsByID(ctx context.Context, ids []int64) ([]Product, error) {
+	rows, err := q.db.Query(ctx, listProductsByID, ids)
 	if err != nil {
 		return nil, err
 	}

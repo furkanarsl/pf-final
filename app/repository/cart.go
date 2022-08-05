@@ -43,6 +43,16 @@ func (r *cartRepo) GetCartItems(cartID int64) ([]queries.ListCartItemsRow, error
 	return cartItems, nil
 }
 
+func (r *cartRepo) GetCartProducts(productIDs []int64) ([]queries.Product, error) {
+	products, err := r.ListProductsByID(context.Background(), productIDs)
+	if err != nil {
+		return products, err
+	}
+
+	return products, nil
+
+}
+
 func (r *cartRepo) AddToCart(cartID int64, productID int64, quantity int32) (queries.CartProduct, error) {
 	args := queries.AddToCartParams{ProductID: productID, CartID: cartID, Quantity: quantity}
 	result, err := r.Queries.AddToCart(context.Background(), args)
