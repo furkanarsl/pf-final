@@ -25,3 +25,9 @@ type Product struct {
 	Price float64 `json:"price"`
 	Vat   int16   `json:"vat"`
 }
+
+type CartAddResult struct {
+	ID      int64   `json:"id"`
+	Product Product `json:"product"`
+	CartID  int64   `json:"cart_id"`
+}
