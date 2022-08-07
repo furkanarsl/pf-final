@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -50,12 +51,19 @@ func (h *cartHandler) AddToCart(c *gin.Context) {
 
 	addParams := AddToCartParams{}
 	err = c.BindJSON(&addParams)
+	fmt.Println(err)
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "Invalid body"})
 		return
 	}
 
-	res, err := h.cartService.AddToCart(userID, addParams.ProductID)
+	if addParams.Quantity <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Provide a valid quantity number"})
+		return
+	}
+
+	res, err := h.cartService.AddToCart(userID, addParams.ProductID, addParams.Quantity)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "Failed to add to cart"})
 		return

@@ -16,7 +16,7 @@ type cartSvc struct {
 
 type CartService interface {
 	ListCart(userID int64) (entity.UserCart, error)
-	AddToCart(userID int64, productID int64) (entity.CartAddResult, error)
+	AddToCart(userID, productID int64, quantity int32) (entity.CartAddResult, error)
 	ClearCart(userID int64) error
 	RemoveFromCart(userID, itemID int64) error
 }
@@ -53,7 +53,7 @@ func (s *cartSvc) ListCart(userID int64) (entity.UserCart, error) {
 	return userCart, nil
 }
 
-func (s *cartSvc) AddToCart(userID int64, productID int64) (entity.CartAddResult, error) {
+func (s *cartSvc) AddToCart(userID, productID int64, quantity int32) (entity.CartAddResult, error) {
 	cart, err := s.CartRepo.GetCartForUser(userID)
 	if err != nil {
 		return entity.CartAddResult{}, err
@@ -65,10 +65,11 @@ func (s *cartSvc) AddToCart(userID int64, productID int64) (entity.CartAddResult
 	}
 
 	cartItem, err := s.CartRepo.GetCartItemByProductID(cart.ID, product.ID)
+
 	if err != nil {
-		cartItem, err = s.CartRepo.AddToCart(cart.ID, product.ID, 1)
+		cartItem, err = s.CartRepo.AddToCart(cart.ID, product.ID, quantity)
 	} else {
-		cartItem, err = s.CartRepo.UpdateCartItemQuantity(cartItem, cartItem.Quantity+1)
+		cartItem, err = s.CartRepo.UpdateCartItemQuantity(cartItem, cartItem.Quantity+quantity)
 	}
 
 	r := entity.CartAddResult{}
