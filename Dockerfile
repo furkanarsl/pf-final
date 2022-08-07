@@ -17,7 +17,7 @@ RUN go build -ldflags="-s -w" -o server ./cmd/main
 FROM scratch
 
 # Copy binary and config files from /build to root folder of scratch container.
-COPY --from=builder ["/build/server", "/build/.env", "/"]
+COPY --from=builder ["/build/server", "/"]
 
 # Export necessary port.
 EXPOSE 8080
