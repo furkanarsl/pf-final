@@ -1,13 +1,14 @@
 .PHONY: clean build
 APP_NAME = apiserver
 BUILD_DIR = $(PWD)/build
+MIGRATIONS_FOLDER = $(PWD)/database/migrations
 DATABASE_URL = postgres://postgres:password@localhost/postgres?sslmode=disable
 
 clean:
 	rm -rf ./build
 
 build: clean
-	CGO_ENABLED=0 go build -ldflags="-w -s" -o $(BUILD_DIR)/$(APP_NAME) server.go
+	CGO_ENABLED=0 go build -ldflags="-w -s" -o $(BUILD_DIR)/$(APP_NAME) main.go
 
 docker.run: docker.network docker.postgres docker.server
 
@@ -46,3 +47,12 @@ docker.stop.postgres:
 
 sqlc.generate:
 	go run github.com/kyleconroy/sqlc/cmd/sqlc@latest generate
+
+migrate.up:
+	migrate -path $(MIGRATIONS_FOLDER) -database "$(DATABASE_URL)" up
+
+migrate.down:
+	migrate -path $(MIGRATIONS_FOLDER) -database "$(DATABASE_URL)" down
+
+migrate.force:
+	migrate -path $(MIGRATIONS_FOLDER) -database "$(DATABASE_URL)" force $(version)

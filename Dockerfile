@@ -13,6 +13,7 @@ COPY . .
 # Set necessary environmet variables needed for our image and build the API server.
 ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 RUN go build -ldflags="-s -w" -o server ./cmd/main
+RUN go build -ldflags="-s -w" -o seed ./cmd/seed
 
 FROM scratch
 
