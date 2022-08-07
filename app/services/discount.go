@@ -44,13 +44,11 @@ func (s *discountSvc) ApplyDiscount(userCart entity.UserCart, args DiscountCondi
 
 		discountedSummaries = append(discountedSummaries, summary)
 	}
-
 	for _, summ := range discountedSummaries {
 		if summ.FinalPrice < userCart.CartSummary.FinalPrice {
 			userCart.CartSummary = summ
 		}
 	}
-
 	return userCart
 }
 
@@ -76,9 +74,8 @@ type FourthPurchaseMonthlyDiscount struct {
 }
 
 func (d FourthPurchaseMonthlyDiscount) CalculateCart(userCart entity.UserCart) DiscountResult {
-
 	if d.OrderCount%4 != 0 || userCart.CartSummary.ProductTotal < d.DiscountThreshold {
-		return DiscountResult{}
+		return DiscountResult{TaxAmount: userCart.CartSummary.TaxTotal}
 	}
 
 	var discountPercent int16 = 0
@@ -114,7 +111,7 @@ func (FourthItemDiscount) CalculateCart(userCart entity.UserCart) DiscountResult
 			quantity -= 3
 			discount := calculateDiscount(item, discountPercent)
 			newTax := utils.CalculatePercent(item.Product.Price-discount, item.Product.Vat)
-			discountResult += discount * float64(quantity-3)
+			discountResult += discount * float64(quantity)
 			taxResult += newTax * float64(quantity)
 		}
 		taxResult += item.OrgTax * float64(quantity)
