@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/furkanarsl/pf-final/app/entity"
 	"github.com/furkanarsl/pf-final/app/repository"
+	"github.com/furkanarsl/pf-final/app/utils"
 	"github.com/furkanarsl/pf-final/pkg/queries"
 )
 
@@ -46,21 +47,25 @@ func (s *cartSvc) AddToCart(userID int64, productID int64) (entity.CartAddResult
 	}
 
 	product, err := s.ProductRepo.FindOne(productID)
-
 	if err != nil {
 		return entity.CartAddResult{}, err
 	}
 
-	result, err := s.CartRepo.AddToCart(cart.ID, product.ID)
+	cartItem, err := s.CartRepo.GetCartItemByProductID(cart.ID, product.ID)
+	if err != nil {
+		cartItem, err = s.CartRepo.AddToCart(cart.ID, product.ID, 1)
+	} else {
+		cartItem, err = s.CartRepo.UpdateCartItemQuantity(cartItem, cartItem.Quantity+1)
+	}
 
 	r := entity.CartAddResult{}
-	r.Product = entity.Product(product)
-	r.CartID = result.CartID
-	r.ID = result.ID
-
 	if err != nil {
 		return r, err
 	}
+
+	r.Product = entity.Product(product)
+	r.CartID = cartItem.CartID
+	r.ID = cartItem.ID
 
 	return r, nil
 }
@@ -81,34 +86,31 @@ func (s *cartSvc) RemoveFromCart(userID, itemID int64) error {
 func (s *cartSvc) calculateCartItems(cartItems *[]queries.ListCartItemsRow, userCart *entity.UserCart) {
 	var cartTotal float64 = 0
 	var cartTaxTotal float64 = 0
+	summary := entity.CartSummary{}
 
 	for i := range *cartItems {
 		item := (*cartItems)[i]
 
-		taxAmount := calculatePercent(item.Price.Float64, item.Vat.Int16)
+		taxAmount := utils.CalculatePercent(item.Price.Float64, item.Vat.Int16)
 		taxedPrice := item.Price.Float64 + taxAmount
-
 		product := entity.Product{ID: item.ProductID.Int64, Name: item.Name.String, Vat: item.Vat.Int16, Price: item.Price.Float64}
 
 		cartItem := entity.CartItem{
-			ID:        item.ID,
-			Product:   product,
-			Price:     taxedPrice,
-			DiscPrice: taxedPrice,
-			OrgTax:    taxAmount,
-			DiscTax:   taxAmount,
+			ID:         item.ID,
+			Quantity:   item.Quantity,
+			Product:    product,
+			Price:      taxedPrice,
+			OrgTax:     taxAmount,
+			TotalPrice: float64(item.Quantity) * taxedPrice,
 		}
 
 		userCart.Items = append(userCart.Items, cartItem)
-		cartTotal += cartItem.Price
-		cartTaxTotal += taxAmount
+		cartTotal += cartItem.TotalPrice
+		cartTaxTotal += taxAmount * float64(item.Quantity)
 	}
-	userCart.TotalTax = cartTaxTotal
-	userCart.TotalTaxDisc = cartTaxTotal
-	userCart.TotalPrice = cartTotal
-	userCart.TotalPriceDisc = cartTotal
-}
 
-func calculatePercent(price float64, percent int16) float64 {
-	return (price * (float64(percent) / 100))
+	summary.ProductTotal = cartTotal
+	summary.TaxTotal = cartTaxTotal
+	summary.FinalPrice = summary.ProductTotal
+	userCart.CartSummary = summary
 }

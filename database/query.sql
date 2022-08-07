@@ -15,7 +15,7 @@ select * from carts
 where user_id = $1;
 
 -- name: ListCartItems :many
-select cp.id, p."name", p.price, p.vat, p.id as product_id from cart_products cp
+select cp.id, cp.quantity, p."name", p.price, p.vat, p.id as product_id from cart_products cp
 left join carts c on cp.cart_id = c.id
 left join products p on p.id = cp.product_id
 where c.id = $1;
@@ -24,8 +24,17 @@ where c.id = $1;
 SELECT * FROM cart_products
 WHERE id = $1;
 
+-- name: GetCartItemByProductID :one
+SELECT * FROM cart_products
+WHERE cart_id = $1 AND product_id = $2;
+
+-- name: UpdateCartItemQuantity :one
+UPDATE cart_products
+SET quantity = $1
+WHERE id = $2 RETURNING *;
+
 -- name: AddToCart :one
-INSERT INTO cart_products(product_id,cart_id) values($1,$2) RETURNING *;
+INSERT INTO cart_products(product_id, cart_id, quantity) values($1, $2, $3) RETURNING *;
 
 -- name: DeleteCartItem :exec
 DELETE FROM cart_products

@@ -15,7 +15,9 @@ type cartRepo struct {
 type CartRepo interface {
 	GetCartForUser(userID int64) (queries.Cart, error)
 	GetCartItems(cartID int64) ([]queries.ListCartItemsRow, error)
-	AddToCart(cartID int64, productID int64) (queries.CartProduct, error)
+	GetCartItemByProductID(cartID int64, productID int64) (queries.CartProduct, error)
+	UpdateCartItemQuantity(cp queries.CartProduct, quantity int32) (queries.CartProduct, error)
+	AddToCart(cartID int64, productID int64, quantity int32) (queries.CartProduct, error)
 	RemoveFromCart(cartID, itemID int64) error
 }
 
@@ -53,14 +55,24 @@ func (r *cartRepo) GetCartProducts(productIDs []int64) ([]queries.Product, error
 
 }
 
-func (r *cartRepo) AddToCart(cartID int64, productID int64) (queries.CartProduct, error) {
-	args := queries.AddToCartParams{ProductID: productID, CartID: cartID}
+func (r *cartRepo) AddToCart(cartID int64, productID int64, quantity int32) (queries.CartProduct, error) {
+	args := queries.AddToCartParams{ProductID: productID, CartID: cartID, Quantity: quantity}
 	result, err := r.Queries.AddToCart(context.Background(), args)
 
 	if err != nil {
 		return result, err
 	}
 
+	return result, nil
+}
+
+func (r *cartRepo) UpdateCartItemQuantity(cp queries.CartProduct, quantity int32) (queries.CartProduct, error) {
+	args := queries.UpdateCartItemQuantityParams{Quantity: quantity, ID: cp.ID}
+
+	result, err := r.Queries.UpdateCartItemQuantity(context.Background(), args)
+	if err != nil {
+		return result, err
+	}
 	return result, nil
 }
 
@@ -75,4 +87,13 @@ func (r *cartRepo) RemoveFromCart(cartID, itemID int64) error {
 		return errors.New("failed to delete product from cart")
 	}
 	return nil
+}
+
+func (r *cartRepo) GetCartItemByProductID(cartID int64, productID int64) (queries.CartProduct, error) {
+	args := queries.GetCartItemByProductIDParams{CartID: cartID, ProductID: productID}
+	result, err := r.Queries.GetCartItemByProductID(context.Background(), args)
+	if err != nil {
+		return result, err
+	}
+	return result, nil
 }

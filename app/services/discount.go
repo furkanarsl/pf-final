@@ -2,7 +2,57 @@ package services
 
 import (
 	"github.com/furkanarsl/pf-final/app/entity"
+	"github.com/furkanarsl/pf-final/app/utils"
 )
+
+type discountSvc struct {
+	discountThreshold float64
+}
+
+type DiscountService interface {
+	ApplyDiscount(userCart entity.UserCart)
+}
+
+func NewDiscountService(discountThreshold float64) *discountSvc {
+	return &discountSvc{discountThreshold: discountThreshold}
+}
+
+type DiscountConditions struct {
+	CustomerTotalMonthly         float64
+	CustomerPurchaseCountMonthly int
+}
+
+func (s *discountSvc) ApplyDiscount(userCart entity.UserCart, args DiscountConditions) entity.UserCart {
+	discounters := []Discounter{
+		MonthlyDiscount{DiscountThreshold: s.discountThreshold, CustomerTotal: args.CustomerTotalMonthly},
+		FourthPurchaseMonthlyDiscount{DiscountThreshold: s.discountThreshold, OrderCount: args.CustomerPurchaseCountMonthly},
+		FourthItemDiscount{},
+	}
+
+	discountedSummaries := []entity.CartSummary{}
+
+	for _, discounter := range discounters {
+
+		result := discounter.CalculateCart(userCart)
+
+		summary := entity.CartSummary{
+			ProductTotal:   userCart.CartSummary.ProductTotal,
+			DiscountAmount: result.DiscountAmount,
+			TaxTotal:       result.TaxAmount,
+			FinalPrice:     userCart.CartSummary.ProductTotal - result.DiscountAmount + (userCart.CartSummary.TaxTotal - result.TaxAmount),
+		}
+
+		discountedSummaries = append(discountedSummaries, summary)
+	}
+
+	for _, summ := range discountedSummaries {
+		if summ.FinalPrice < userCart.CartSummary.FinalPrice {
+			userCart.CartSummary = summ
+		}
+	}
+
+	return userCart
+}
 
 // Discount amounts for
 var discountAmount = map[int16]int16{
@@ -11,79 +61,93 @@ var discountAmount = map[int16]int16{
 	18: 15,
 }
 
-type DiscountSvc struct {
+type Discounter interface {
+	CalculateCart(userCart entity.UserCart) DiscountResult
 }
 
-type DiscountService interface {
-	ApplyDiscount(userCart entity.UserCart)
+type DiscountResult struct {
+	DiscountAmount float64
+	TaxAmount      float64
 }
 
-func NewDiscountService() *DiscountSvc {
-	return &DiscountSvc{}
+type FourthPurchaseMonthlyDiscount struct {
+	DiscountThreshold float64
+	OrderCount        int
 }
 
-func (s *DiscountSvc) ApplyDiscount(userCart entity.UserCart) {
-	//TODO: Choose which discount is best for given cart and apply it
+func (d FourthPurchaseMonthlyDiscount) CalculateCart(userCart entity.UserCart) DiscountResult {
 
-}
-
-func (s *DiscountSvc) calculateFourthOrderDiscount(userCart entity.UserCart, discountThreshold float64, orderCount int) entity.UserCart {
-	if orderCount%4 != 0 || userCart.TotalPrice < discountThreshold {
-		return userCart
+	if d.OrderCount%4 != 0 || userCart.CartSummary.ProductTotal < d.DiscountThreshold {
+		return DiscountResult{}
 	}
 
-	userCart.TotalPriceDisc = 0
-	userCart.TotalTaxDisc = 0
+	var discountPercent int16 = 0
+	var discountResult float64 = 0
+	var taxResult float64 = 0
 
 	for i := range userCart.Items {
-		var discount int16 = 0
 		item := &userCart.Items[i]
 		if val, ok := discountAmount[item.Product.Vat]; ok {
-			discount = val
+			discountPercent = val
+			discount := calculateDiscount(item, discountPercent)
+			newTax := utils.CalculatePercent(item.Product.Price-discount, item.Product.Vat)
+			discountResult += discount * float64(item.Quantity)
+
+			taxResult += newTax * float64(item.Quantity)
 		}
-		applyDiscount(item, &userCart, discount)
 	}
-	return userCart
+	return DiscountResult{DiscountAmount: discountResult, TaxAmount: taxResult}
 }
 
-func (s *DiscountSvc) calculateFourthItemDiscount(userCart entity.UserCart) entity.UserCart {
-	var discount int16 = 0
-	productCount := make(map[int64]int)
-	userCart.TotalPriceDisc = 0
-	userCart.TotalTaxDisc = 0
+type FourthItemDiscount struct{}
+
+func (FourthItemDiscount) CalculateCart(userCart entity.UserCart) DiscountResult {
+	var discountPercent int16 = 0
+	var discountResult float64 = 0
+	var taxResult float64 = 0
+
 	for i := range userCart.Items {
 		item := &userCart.Items[i]
-		// Add product to count map
-		if _, ok := productCount[item.Product.ID]; !ok {
-			productCount[item.Product.ID] = 1
-		} else {
-			productCount[item.Product.ID] += 1
+		quantity := item.Quantity
+		if quantity > 3 {
+			discountPercent = 8
+			quantity -= 3
+			discount := calculateDiscount(item, discountPercent)
+			newTax := utils.CalculatePercent(item.Product.Price-discount, item.Product.Vat)
+			discountResult += discount * float64(quantity-3)
+			taxResult += newTax * float64(quantity)
 		}
-		if productCount[item.Product.ID] > 3 {
-			discount = 8
-		}
-		applyDiscount(item, &userCart, discount)
-		discount = 0
+		taxResult += item.OrgTax * float64(quantity)
+		discountPercent = 0
 	}
-	return userCart
+	return DiscountResult{DiscountAmount: discountResult, TaxAmount: taxResult}
 }
 
-func (s *DiscountSvc) calculateMonthlyDiscount(userCart entity.UserCart) entity.UserCart {
-	// TODO: add check to see if user made purchase more than given amount
-	var discount int16 = 10
-	userCart.TotalPriceDisc = 0
-	userCart.TotalTaxDisc = 0
+type MonthlyDiscount struct {
+	DiscountThreshold float64
+	CustomerTotal     float64
+}
+
+func (d MonthlyDiscount) CalculateCart(userCart entity.UserCart) DiscountResult {
+	if d.CustomerTotal < d.DiscountThreshold {
+		return DiscountResult{TaxAmount: userCart.CartSummary.TaxTotal}
+	}
+
+	var discountPercent int16 = 10
+	var discountResult float64 = 0
+	var taxResult float64 = 0
+
 	for i := range userCart.Items {
 		item := &userCart.Items[i]
-		applyDiscount(item, &userCart, discount)
+		discount := calculateDiscount(item, discountPercent)
+		newTax := utils.CalculatePercent(item.Product.Price-discount, item.Product.Vat)
+		discountResult += discount * float64(item.Quantity)
+		taxResult += newTax * float64(item.Quantity)
 	}
-	return userCart
+
+	return DiscountResult{DiscountAmount: discountResult, TaxAmount: taxResult}
 }
 
-func applyDiscount(item *entity.CartItem, userCart *entity.UserCart, discount int16) {
-	discOrgPrice := item.Product.Price - calculatePercent(item.Product.Price, discount)
-	item.DiscTax = calculatePercent(discOrgPrice, item.Product.Vat)
-	item.DiscPrice = discOrgPrice + item.DiscTax
-	userCart.TotalPriceDisc += item.DiscPrice
-	userCart.TotalTaxDisc += item.DiscTax
+func calculateDiscount(item *entity.CartItem, discountPercent int16) float64 {
+	return utils.CalculatePercent(item.Product.Price, discountPercent)
 }
