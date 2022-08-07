@@ -8,18 +8,26 @@ import (
 )
 
 type cartSvc struct {
-	CartRepo    repository.CartRepo
-	ProductRepo repository.ProductRepo
+	CartRepo        repository.CartRepo
+	ProductRepo     repository.ProductRepo
+	OrderRepo       repository.OrderRepo
+	DiscountService DiscountService
 }
 
 type CartService interface {
 	ListCart(userID int64) (entity.UserCart, error)
 	AddToCart(userID int64, productID int64) (entity.CartAddResult, error)
+	ClearCart(userID int64) error
 	RemoveFromCart(userID, itemID int64) error
 }
 
-func NewCartService(CartRepo repository.CartRepo, ProductRepo repository.ProductRepo) *cartSvc {
-	return &cartSvc{CartRepo: CartRepo, ProductRepo: ProductRepo}
+func NewCartService(cartRepo repository.CartRepo, productRepo repository.ProductRepo, orderRepo repository.OrderRepo, discountService DiscountService) *cartSvc {
+	return &cartSvc{
+		CartRepo:        cartRepo,
+		ProductRepo:     productRepo,
+		DiscountService: discountService,
+		OrderRepo:       orderRepo,
+	}
 }
 
 func (s *cartSvc) ListCart(userID int64) (entity.UserCart, error) {
@@ -31,12 +39,17 @@ func (s *cartSvc) ListCart(userID int64) (entity.UserCart, error) {
 	userCart.ID = cart.ID
 
 	cartItems, _ := s.CartRepo.GetCartItems(userID)
-	s.calculateCartItems(&cartItems, &userCart)
-
 	if len(cartItems) < 1 {
 		userCart.Items = []entity.CartItem{}
 		return userCart, nil
 	}
+
+	s.calculateCartItems(&cartItems, &userCart)
+	args := DiscountConditions{
+		CustomerTotalMonthly:         s.OrderRepo.CustomerOrderTotalMonthly(userID),
+		CustomerPurchaseCountMonthly: s.OrderRepo.CustomerOrderCountMonthly(userID),
+	}
+	userCart = s.DiscountService.ApplyDiscount(userCart, args)
 	return userCart, nil
 }
 
@@ -68,6 +81,16 @@ func (s *cartSvc) AddToCart(userID int64, productID int64) (entity.CartAddResult
 	r.ID = cartItem.ID
 
 	return r, nil
+}
+
+func (s *cartSvc) ClearCart(userID int64) error {
+	cart, err := s.CartRepo.GetCartForUser(userID)
+	if err != nil {
+		return err
+	}
+
+	s.CartRepo.EmptyCart(cart.ID)
+	return nil
 }
 
 func (s *cartSvc) RemoveFromCart(userID, itemID int64) error {

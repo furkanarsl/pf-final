@@ -28,6 +28,10 @@ WHERE id = $1;
 SELECT * FROM cart_products
 WHERE cart_id = $1 AND product_id = $2;
 
+-- name: EmptyCart :exec
+DELETE FROM cart_products
+WHERE cart_id = $1; 
+
 -- name: UpdateCartItemQuantity :one
 UPDATE cart_products
 SET quantity = $1

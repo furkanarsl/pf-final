@@ -28,7 +28,7 @@ func (h *orderHandler) CompleteOrder(c *gin.Context) {
 	}
 	order, err := h.orderService.CompleteOrder(userID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "Failed to complete the order"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
 		return
 	}
 	c.JSON(200, order)

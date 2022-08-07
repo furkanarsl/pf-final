@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"strconv"
 
 	"github.com/furkanarsl/pf-final/app/handlers"
 	"github.com/furkanarsl/pf-final/app/repository"
@@ -30,8 +31,10 @@ func main() {
 	cartRepo := repository.NewCartRepo(queries)
 	orderRepo := repository.NewOrderRepo(queries)
 	//Create services
+	dcThreshold, _ := strconv.ParseFloat(os.Getenv("DISCOUNT_THRESHOLD_AMOUNT"), 64)
+	discountSvc := services.NewDiscountService(dcThreshold)
 	productSvc := services.NewProductService(productRepo)
-	cartSvc := services.NewCartService(cartRepo, productRepo)
+	cartSvc := services.NewCartService(cartRepo, productRepo, orderRepo, discountSvc)
 	orderSvc := services.NewOrderService(orderRepo, cartSvc)
 	//Register handlers
 	handlers.NewProductHandler(api, productSvc)

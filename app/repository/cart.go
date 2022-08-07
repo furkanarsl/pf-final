@@ -19,6 +19,7 @@ type CartRepo interface {
 	UpdateCartItemQuantity(cp queries.CartProduct, quantity int32) (queries.CartProduct, error)
 	AddToCart(cartID int64, productID int64, quantity int32) (queries.CartProduct, error)
 	RemoveFromCart(cartID, itemID int64) error
+	EmptyCart(cartID int64)
 }
 
 func NewCartRepo(queries database.DbQueries) *cartRepo {
@@ -96,4 +97,8 @@ func (r *cartRepo) GetCartItemByProductID(cartID int64, productID int64) (querie
 		return result, err
 	}
 	return result, nil
+}
+
+func (r *cartRepo) EmptyCart(cartID int64) {
+	r.Queries.EmptyCart(context.Background(), cartID)
 }

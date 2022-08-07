@@ -10,7 +10,7 @@ type discountSvc struct {
 }
 
 type DiscountService interface {
-	ApplyDiscount(userCart entity.UserCart)
+	ApplyDiscount(userCart entity.UserCart, args DiscountConditions) entity.UserCart
 }
 
 func NewDiscountService(discountThreshold float64) *discountSvc {
@@ -19,7 +19,7 @@ func NewDiscountService(discountThreshold float64) *discountSvc {
 
 type DiscountConditions struct {
 	CustomerTotalMonthly         float64
-	CustomerPurchaseCountMonthly int
+	CustomerPurchaseCountMonthly int64
 }
 
 func (s *discountSvc) ApplyDiscount(userCart entity.UserCart, args DiscountConditions) entity.UserCart {
@@ -72,7 +72,7 @@ type DiscountResult struct {
 
 type FourthPurchaseMonthlyDiscount struct {
 	DiscountThreshold float64
-	OrderCount        int
+	OrderCount        int64
 }
 
 func (d FourthPurchaseMonthlyDiscount) CalculateCart(userCart entity.UserCart) DiscountResult {
