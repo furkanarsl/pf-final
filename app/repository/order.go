@@ -35,14 +35,14 @@ func (r *orderRepo) CreateOrder(userID int64, totalPaid float64) (queries.Order,
 
 func (r *orderRepo) CustomerOrderTotalMonthly(userID int64) float64 {
 	startOfMonth, endOfMonth := getCurrentMonth()
-	args := queries.GetOrderTotalBetweenDateParams{StartDate: startOfMonth, EndDate: endOfMonth}
+	args := queries.GetOrderTotalBetweenDateParams{UserID: userID, StartDate: startOfMonth, EndDate: endOfMonth}
 	result, _ := r.GetOrderTotalBetweenDate(context.Background(), args)
 	return result
 }
 
 func (r *orderRepo) CustomerOrderCountMonthly(userID int64) int64 {
 	startOfMonth, endOfMonth := getCurrentMonth()
-	args := queries.GetOrderCountBetweenDateParams{StartDate: startOfMonth, EndDate: endOfMonth}
+	args := queries.GetOrderCountBetweenDateParams{UserID: userID, StartDate: startOfMonth, EndDate: endOfMonth}
 	result, _ := r.GetOrderCountBetweenDate(context.Background(), args)
 	return result
 }
