@@ -25,7 +25,7 @@ type DiscountConditions struct {
 func (s *discountSvc) ApplyDiscount(userCart entity.UserCart, args DiscountConditions) entity.UserCart {
 	discounters := []Discounter{
 		MonthlyDiscount{DiscountThreshold: s.discountThreshold, CustomerTotal: args.CustomerTotalMonthly},
-		FourthPurchaseMonthlyDiscount{DiscountThreshold: s.discountThreshold, OrderCount: args.CustomerPurchaseCountMonthly},
+		FourthPurchaseMonthlyDiscount{DiscountThreshold: s.discountThreshold, OrderCount: args.CustomerPurchaseCountMonthly + 1},
 		FourthItemDiscount{},
 	}
 

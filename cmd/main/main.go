@@ -19,7 +19,7 @@ func main() {
 	api := r.Group("/api/v1")
 	//Connect to DB
 	// Maybe move this to another file
-	db, err := database.Open(os.Getenv("DB_URL"))
+	db, err := database.Open(os.Getenv("DATABASE_URL"))
 	if err != nil {
 		panic(err)
 	}

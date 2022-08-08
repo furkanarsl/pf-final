@@ -44,7 +44,7 @@ func (s *cartSvc) ListCart(userID int64) (entity.UserCart, error) {
 		return userCart, nil
 	}
 
-	s.calculateCartItems(&cartItems, &userCart)
+	calculateCartItems(&cartItems, &userCart)
 	args := DiscountConditions{
 		CustomerTotalMonthly:         s.OrderRepo.CustomerOrderTotalMonthly(userID),
 		CustomerPurchaseCountMonthly: s.OrderRepo.CustomerOrderCountMonthly(userID),
@@ -107,7 +107,7 @@ func (s *cartSvc) RemoveFromCart(userID, itemID int64) error {
 	return nil
 }
 
-func (s *cartSvc) calculateCartItems(cartItems *[]queries.ListCartItemsRow, userCart *entity.UserCart) {
+func calculateCartItems(cartItems *[]queries.ListCartItemsRow, userCart *entity.UserCart) {
 	var cartTotal float64 = 0
 	var cartTaxTotal float64 = 0
 	summary := entity.CartSummary{}

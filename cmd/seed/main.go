@@ -13,7 +13,7 @@ import (
 )
 
 var seedFilePath = flag.String("f", "seed.sql", "seed file location")
-var dbURL = flag.String("db", os.Getenv("DB_URL"), "seed file location")
+var dbURL = flag.String("db", os.Getenv("DATABASE_URL"), "seed file location")
 
 func main() {
 	conn, err := pgx.Connect(context.Background(), *dbURL)
