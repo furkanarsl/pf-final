@@ -11,11 +11,18 @@ This project is the implementation of a basic basket system based on the require
 
 ## Running locally
 Project requires a Postgres database to run. Make sure you have one running.
+You can migrate the database tables using ``make migrate.up``. Make sure to set the database url correctly on the makefile.
+Seed the database with ``go run cmd/seed/main.go -f database/seed/seed.sql``
 
 Build the project and run using
 ```
 go build cmd/main/main.go
 ./main
+```
+Using docker compose:
+* Fill in the .env.compose file
+```
+docker compose up
 ```
 
 ## Example usage of endpoints
@@ -38,7 +45,7 @@ Example response:
         "name": "test2",
         "price": 100,
         "vat": 8
-    },
+    }
 ]
 ```
 
@@ -60,7 +67,7 @@ Example response:
 ```GET /api/v1/cart```
 
 Example response:
-```json
+```jsonc
 {
     "id": 3,
     "items": [
@@ -90,6 +97,15 @@ Example response:
 ## Add to cart
 ```POST /api/v1/cart?user_id={id}```
 
+Request Body:
+
+```json
+{
+  "prodct_id":1,
+  "quantity": 1
+}
+```
+
 Example response:
 ```json
 {
@@ -116,7 +132,7 @@ Example response:
 ```
 
 ## Complete order 
-```/api/v1/order/complete?user_id={}```
+```/api/v1/order/complete?user_id={id}```
 
 Example response:
 ```json
